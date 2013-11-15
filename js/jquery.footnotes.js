@@ -177,7 +177,7 @@
                 var foundFootnoteIdx = -1,
                     refID = j + "-" + i,
                     $this = $(this),
-                    $footnoteDestination, footnoteHTML, $foundFootnoteLI,
+                    $footnoteDestination, $footnoteHTML, $foundFootnoteLI,
                     $anchor, $li, $backRefSpan, $backRefs,
                     letterCounter;
 
@@ -206,7 +206,8 @@
                 // element so that we only do this once
                 $this.removeClass(opts.autoFootnoteClass);
 
-                footnoteHTML = opts.fnExtractFootnote(this);
+                $footnoteHTML = $(opts.fnExtractFootnote(this));
+                $footnoteHTML.removeClass('footnote');
                 foundFootnoteIdx = -1;
                 refID = j + "-" + i;
 
@@ -214,7 +215,7 @@
                 $footnoteDestination.find("li > .footnoteContent").each(function (k) {
                     var $thisFootnoteContent = $(this);
 
-                    if($thisFootnoteContent.html() === footnoteHTML) {
+                    if($thisFootnoteContent.text() === $footnoteHTML.text()) {
                         foundFootnoteIdx = k;
                         $foundFootnoteLI = $($thisFootnoteContent.parents("li").get(0));
                         return false;
@@ -229,7 +230,7 @@
                         .attr("name", "cite-ref-" + refID)
                         .attr("id", "cite-ref-" + refID)
                         .attr("dir", "ltr")
-                        .attr("title", $(footnoteHTML).text())
+                        .attr("title", $footnoteHTML.text())
                         .text("[" + ($footnoteDestination.find("li").length + 1) + "]")
                         .addClass("footnoteLink");
 
@@ -255,7 +256,7 @@
 
                     $("<span/>")
                         .addClass("footnoteContent")
-                        .html(footnoteHTML)
+                        .append($footnoteHTML)
                         .appendTo($li);
 
                     // Create the backreference A
@@ -298,7 +299,7 @@
                             .attr("href", "#" + $foundFootnoteLI.attr("id"))
                             .attr("name", "cite-ref-" + refID + "-" + $backRefs.length)
                             .attr("id", "cite-ref-" + refID + "-" + $backRefs.length)
-                            .attr("title", footnoteHTML)
+                            .attr("title", $footnoteHTML.text())
                             .text("[" + (foundFootnoteIdx + 1) + "]")
                             .addClass("footnoteLink");
 
@@ -309,7 +310,7 @@
                                 .append($anchor);
                         } else {
                             $("<sup/>")
-                                .appendTo(this)
+                                .insertAfter(this)
                                 .append($anchor);
                         }
 
@@ -327,6 +328,7 @@
                             .appendTo($backRefSpan)
                             .append($anchor);
 
+                        $footnoteHTML.remove();
                     }
                 }
             }); // end $("." + opts.autoFootnoteClass).each(function(i))
