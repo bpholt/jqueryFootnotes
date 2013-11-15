@@ -177,29 +177,19 @@
         }
     }
 
-    function ensureFootnoteDestination(opts, j) {
+    function ensureFootnoteDestination(j, opts) {
         var $contentPlaceholder = ("" === opts.contentBlock) ? $(this) : $(opts.contentBlock, this),
             newListElement = opts.orderedList ? "<ol/>" : "<ul/>",
+            id = opts.singleFootnoteDestination ? opts.destination : opts.destination + j,
             $footnoteDestination;
 
-        if (opts.singleFootnoteDestination) {
-            $footnoteDestination = $("#" + opts.destination);
-            if (0 === $footnoteDestination.length) {
-                logToConsole("INFO: No #autoFootnotes found; adding our own", opts.debugMode);
-                $footnoteDestination = $(newListElement)
-                    .attr("id", opts.destination)
-                    .addClass("footnotesList")
-                    .appendTo($contentPlaceholder);
-            }
-        } else {
-            $footnoteDestination = $("#" + opts.destination + j);
-            if (0 === $footnoteDestination.length) {
-                logToConsole("INFO: No #autoFootnotes" + j + " found; adding our own for " + (j + 1), opts.debugMode);
-                $footnoteDestination = $(newListElement)
-                    .attr("id", opts.destination + j)
-                    .addClass("footnotesList")
-                    .appendTo($contentPlaceholder);
-            }
+        $footnoteDestination = $("#" + id);
+        if (0 === $footnoteDestination.length) {
+            logToConsole("INFO: No #autoFootnotes" + j + " found; adding our own for " + (j + 1), opts.debugMode);
+            $footnoteDestination = $(newListElement)
+                .attr("id", id)
+                .addClass("footnotesList")
+                .appendTo($contentPlaceholder[j]);
         }
         return $footnoteDestination;
     }
@@ -292,9 +282,11 @@
         var opts = $.extend({}, $.fn.footnotes.defaults, options),
             container = this;
 
-        return this.each(function (j) {
+        return this.each(function (footnoteGroup) {
 
-            logToConsole("INFO: Building footnotes for " + (j + 1) + "...", opts.debugMode);
+            var $footnoteDestination = ensureFootnoteDestination.call(container, footnoteGroup, opts);
+
+            logToConsole("INFO: Building footnotes for " + (footnoteGroup + 1) + "...", opts.debugMode);
             /**
              * Add a fake class to the elements we want to select, so that
              * the jQuery.each() function iterates over them in the
@@ -308,9 +300,8 @@
             $("." + opts.autoFootnoteClass).each(function (i) {
 
                 var foundFootnoteIdx = -1,
-                    refID = j + "-" + i,
+                    refID = footnoteGroup + "-" + i,
                     $this = $(this),
-                    $footnoteDestination = ensureFootnoteDestination.call(container, opts, j),
                     $footnoteHTML, $foundFootnoteLI;
 
                 // First, remove the class that selected this
@@ -336,11 +327,11 @@
                 if (undefined === $foundFootnoteLI) {
                     addNewFootnote(refID, $footnoteHTML, $footnoteDestination, $this, opts);
                 } else {
-                    addInstanceToExistingFootnote($footnoteHTML, $foundFootnoteLI, j, foundFootnoteIdx, $this, $this.is(opts.prependTags));
+                    addInstanceToExistingFootnote($footnoteHTML, $foundFootnoteLI, footnoteGroup, foundFootnoteIdx, $this, $this.is(opts.prependTags));
                 }
             }); // end $("." + opts.autoFootnoteClass).each(function(i))
 
-            logToConsole("INFO: Done building footnotes for " + (j+ 1), opts.debugMode);
+            logToConsole("INFO: Done building footnotes for " + (footnoteGroup+ 1), opts.debugMode);
 
         }); // return this.each()
     }; // jQuery.fn.footnotes
