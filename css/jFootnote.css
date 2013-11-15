@@ -1,0 +1,54 @@
+blockquote sup {
+	position: absolute;
+	right: 3px;
+	top: 3px;
+}
+blockquote {
+	background-color:#DDDDDD;
+	border-left: 2px black solid;
+	position: relative;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 0.8em;
+	padding-bottom: 0.1em;
+	padding-left: 1em;
+	padding-right: 1em;
+}
+a.footnoteTarget {
+	text-decoration: none;
+	color: inherit;
+}
+.footnote ol li:hover {
+	text-decoration: underline;
+}
+a.footnoteBackref, a.footnoteLink {
+	text-decoration: none;
+}
+ol.footnotesList {
+	font-size: 0.8em;
+	padding-top: 5px;
+	background: url(footnotes-bg.png);
+	background-position: 0 0;
+	background-repeat: no-repeat;
+}
+ol.footnotesList > li {
+	text-indent: -1.5em;
+	padding-left: 1.5em;
+	vertical-align: top;
+}
+/**/
+.footnoteBackReferenceGroup {
+	padding-right: 0.5em;
+}
+.footnoteBackref {
+	padding-right: 0.25em;
+}
+span.footnoteContent {
+
+}
+span.footnoteContent > p:first-child, span.footnoteContent > div:first-child { 
+	display: inline; 
+}
+span.footnoteContent p, span.footnoteContent div {
+	text-indent: 0em;
+}

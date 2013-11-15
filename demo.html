@@ -1,0 +1,26 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/jFootnote.css">
+		<style>
+			ol {
+				margin-bottom: 50em;
+			}
+		</style>
+	</head>
+	<body>
+		<blockquote title="I came from the blockquote." cite="https://planetholt.com">
+			<p>Here is a simple blockquote, with a title.</p>
+		</blockquote>
+		<p>Not a footnote.<span class="footnote"> (This is a footnote!<span class="footnote"> (This is a nested footnote.)</span> What?)</span></p>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js"></script>
+		<script src="js/jquery.footnotes.js"></script>
+		<script>
+			$(document).ready(function() { 
+				$('body').footnotes({
+					singleFootnoteDestination: true,
+					contentBlock: ''
+				});
+			});
+		</script>
+	</body>
+</html>
