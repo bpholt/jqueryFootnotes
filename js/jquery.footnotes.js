@@ -337,7 +337,7 @@
     }; // jQuery.fn.footnotes
 
     // Publicly expose the version number
-    $.fn.footnotes.version = function () { return "1.2.2"; };
+    $.fn.footnotes.version = function () { return "1.3"; };
 
     // Publicly expose defaults
     $.fn.footnotes.defaults = {
@@ -410,24 +410,7 @@
          * - When TRUE, we will attempt to output console log messages.
          * - When FALSE, console log messages will be suppressed.
          */
-        debugMode: true
+        debugMode: false
     };// $.fn.footnotes.defaults
 
 }(jQuery));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
