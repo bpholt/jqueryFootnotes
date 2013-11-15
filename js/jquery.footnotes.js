@@ -42,7 +42,7 @@
      * whitespace), in which case the parentheses are stripped.
      *
      * The entire contents of any BLOCKQUOTE's TITLE attribute are
-     * directly returned, including any surrounding parantheses.
+     * directly returned, including any surrounding parentheses.
      *
      * The contents of the SPAN, or the BLOCKQUOTE's TITLE attribute
      * are cleared.
@@ -81,19 +81,21 @@
                     });
 
                     textNodes.each(function() {
-                        var parensPos = this.textContent.indexOf('(');
-                        if (parensPos > -1) {
-                            this.textContent = this.textContent.substr(parensPos + 1);
+                        var pos = this.textContent.indexOf('(');
+                        if (pos > -1) {
+                            this.textContent = this.textContent.substr(pos + 1);
                             return false;
                         }
+                        return true;
                     });
 
                     textNodes.reverse().each(function() {
-                        var parensPos = this.textContent.lastIndexOf(')');
-                        if (parensPos > -1) {
-                            this.textContent = this.textContent.substr(0, parensPos);
+                        var pos = this.textContent.lastIndexOf(')');
+                        if (pos > -1) {
+                            this.textContent = this.textContent.substr(0, pos);
                             return false;
                         }
+                        return true;
                     });
                 }
             }
@@ -109,7 +111,9 @@
             // Grab the contents to put in the footnote
             footnoteHTML = $obj.attr("title");
 
-            if("" !== cite) {
+            if ('' === cite) {
+                footnoteHTML = $('<span/>').text(footnoteHTML);
+            } else {
                 a = $("<a/>").attr("href", cite);
 
                 /*
@@ -127,7 +131,7 @@
                 else {
                     footnoteHTML = a
                                     .text(cite)
-                                    .wrap("<span/>")
+                                    .wrap('<span/>')
                                     .parent()
                                         .append(": " + footnoteHTML);
 
@@ -151,9 +155,142 @@
         return footnoteHTML;
     }
 
+    function addLinkToFootnote(link) {
+        var $anchor = $('<a/>')
+            .attr('href', link.href)
+            .attr('name', link.id)
+            .attr('id', link.id)
+            .attr('title', link.title)
+            .attr('dir', 'ltr')
+            .text(link.text)
+            .addClass('footnoteLink');
+
+        // Add a new SUP tag and set its properties
+        if(link.prepend) {
+            $('<sup/>')
+                .prependTo(link.destination)
+                .append($anchor);
+        } else {
+            $('<sup/>')
+                .insertAfter(link.destination)
+                .append($anchor);
+        }
+    }
+
+    function ensureFootnoteDestination(opts, j) {
+        var $contentPlaceholder = ("" === opts.contentBlock) ? $(this) : $(opts.contentBlock, this),
+            newListElement = opts.orderedList ? "<ol/>" : "<ul/>",
+            $footnoteDestination;
+
+        if (opts.singleFootnoteDestination) {
+            $footnoteDestination = $("#" + opts.destination);
+            if (0 === $footnoteDestination.length) {
+                logToConsole("INFO: No #autoFootnotes found; adding our own", opts.debugMode);
+                $footnoteDestination = $(newListElement)
+                    .attr("id", opts.destination)
+                    .addClass("footnotesList")
+                    .appendTo($contentPlaceholder);
+            }
+        } else {
+            $footnoteDestination = $("#" + opts.destination + j);
+            if (0 === $footnoteDestination.length) {
+                logToConsole("INFO: No #autoFootnotes" + j + " found; adding our own for " + (j + 1), opts.debugMode);
+                $footnoteDestination = $(newListElement)
+                    .attr("id", opts.destination + j)
+                    .addClass("footnotesList")
+                    .appendTo($contentPlaceholder);
+            }
+        }
+        return $footnoteDestination;
+    }
+
+    function addNewFootnote(refID, $footnoteHTML, $footnoteDestination, $this, opts) {
+        var $li, $backRefSpan;
+// First, add the link to the footnote
+        // Add a new A tag and set its properties
+
+        addLinkToFootnote({
+            href: "#cite-text-" + refID,
+            id: "cite-ref-" + refID,
+            title: $footnoteHTML.text(),
+            text: "[" + ($footnoteDestination.find("li").length + 1) + "]",
+            destination: $this,
+            prepend: $this.is(opts.prependTags)
+        });
+
+        // Second, add the footnote and the link back to the text
+        // Create the LI for the footnote
+        $li = $("<li/>")
+            .attr("id", "cite-text-" + refID);
+
+        $backRefSpan = $("<span/>")
+            .addClass("footnoteBackReferenceGroup")
+            .appendTo($li);
+
+        $("<span/>")
+            .addClass("footnoteContent")
+            .append($footnoteHTML)
+            .appendTo($li);
+
+        // Create the backreference A
+        $("<a/>")
+            .text("^")
+            .attr("href", "#cite-ref-" + refID)
+            .addClass("footnoteBackref")
+            .prependTo($backRefSpan);
+
+        // Add the footnote LI to the OL
+        $footnoteDestination.append($li);
+    }
+
+    function addInstanceToExistingFootnote($footnote, $foundFootnoteLI, footnoteGroupIdx, existingFootnoteIdx, $linkContainer, prependTags) {
+        var refID = footnoteGroupIdx + "-" + existingFootnoteIdx,
+            $backRefSpan = $foundFootnoteLI.find('span.footnoteBackReferenceGroup'),
+            $backRefs = $backRefSpan.find(".footnoteBackref"),
+            letterCounter = $backRefs.length,
+            $anchor;
+
+        if (1 === $backRefs.length) {
+            // We need to insert a non-linked ^, and change the link text to "a"
+            $("<sup/>")
+                .text("^ ")
+                .addClass("footnoteBackref")
+                .prependTo($backRefSpan);
+            $backRefs.html("<sup>a</sup>");
+
+            letterCounter = letterCounter + 1;
+        }
+
+        // Insert the two links for this footnote
+
+        // first, the link to the footnote
+        addLinkToFootnote({
+            href: "#" + $foundFootnoteLI.attr("id"),
+            id: "cite-ref-" + refID + "-" + $backRefs.length,
+            title: $footnote.text(),
+            text: "[" + (existingFootnoteIdx + 1) + "]",
+            destination: $linkContainer,
+            prependTags: prependTags
+        });
+
+        // The back-reference
+        $anchor = $("<a/>")
+            .attr("href", "#cite-ref-" + refID + "-" + $backRefs.length)
+            .addClass("footnoteBackref");
+
+        $anchor.prepend(String.fromCharCode(letterCounter + 96));
+
+        $("<sup/>")
+            .appendTo($backRefSpan)
+            .append($anchor);
+
+        $footnote.remove();
+    }
+
     $.fn.footnotes = function (options) {
 
-        var opts = $.extend({}, $.fn.footnotes.defaults, options);
+        var opts = $.extend({}, $.fn.footnotes.defaults, options),
+            container = this;
 
         return this.each(function (j) {
 
@@ -165,10 +302,6 @@
              */
             $(opts.footnotes, this).addClass(opts.autoFootnoteClass);
 
-
-            var $contentPlaceholder = ("" === opts.contentBlock) ? $(this) : $(opts.contentBlock, this),
-                newListElement = opts.orderedList ? "<ol/>" : "<ul/>";
-
             /**
              * Iterate over the elements we selected earlier
              */
@@ -177,30 +310,8 @@
                 var foundFootnoteIdx = -1,
                     refID = j + "-" + i,
                     $this = $(this),
-                    $footnoteDestination, $footnoteHTML, $foundFootnoteLI,
-                    $anchor, $li, $backRefSpan, $backRefs,
-                    letterCounter;
-
-                // Make sure we have a place to put our footnotes
-                if(opts.singleFootnoteDestination) {
-                    $footnoteDestination = $("#" + opts.destination);
-                    if(0 === $footnoteDestination.length) {
-                        logToConsole("INFO: No #autoFootnotes found; adding our own", opts.debugMode);
-                        $footnoteDestination = $(newListElement)
-                            .attr("id", opts.destination)
-                            .addClass("footnotesList")
-                            .appendTo($contentPlaceholder);
-                    }
-                } else {
-                    $footnoteDestination = $("#" + opts.destination + j);
-                    if(0 === $footnoteDestination.length) {
-                        logToConsole("INFO: No #autoFootnotes" + j + " found; adding our own for " + (j+1), opts.debugMode);
-                        $footnoteDestination = $(newListElement)
-                            .attr("id", opts.destination + j)
-                            .addClass("footnotesList")
-                            .appendTo($contentPlaceholder);
-                    }
-                }
+                    $footnoteDestination = ensureFootnoteDestination.call(container, opts, j),
+                    $footnoteHTML, $foundFootnoteLI;
 
                 // First, remove the class that selected this
                 // element so that we only do this once
@@ -209,127 +320,23 @@
                 $footnoteHTML = $(opts.fnExtractFootnote(this));
                 $footnoteHTML.removeClass('footnote');
                 foundFootnoteIdx = -1;
-                refID = j + "-" + i;
 
                 // Check to see if we've already encountered this exact footnote
                 $footnoteDestination.find("li > .footnoteContent").each(function (k) {
                     var $thisFootnoteContent = $(this);
 
-                    if($thisFootnoteContent.text() === $footnoteHTML.text()) {
+                    if($thisFootnoteContent.html() === $footnoteHTML[0].outerHTML) {
                         foundFootnoteIdx = k;
                         $foundFootnoteLI = $($thisFootnoteContent.parents("li").get(0));
                         return false;
                     }
+                    return true;
                 });
 
-                if(-1 === foundFootnoteIdx) {
-                // First, add the link to the footnote
-                    // Add a new A tag and set its properties
-                    $anchor = $("<a/>")
-                        .attr("href", "#cite-text-" + refID)
-                        .attr("name", "cite-ref-" + refID)
-                        .attr("id", "cite-ref-" + refID)
-                        .attr("dir", "ltr")
-                        .attr("title", $footnoteHTML.text())
-                        .text("[" + ($footnoteDestination.find("li").length + 1) + "]")
-                        .addClass("footnoteLink");
-
-                    // Add a new SUP tag and set its properties
-                    if($this.is(opts.prependTags)) {
-                        $("<sup/>")
-                            .prependTo(this)
-                            .append($anchor);
-                    } else {
-                        $("<sup/>")
-                            .insertAfter(this)
-                            .append($anchor);
-                    }
-
-                // Second, add the footnote and the link back to the text
-                    // Create the LI for the footnote
-                    $li = $("<li/>")
-                        .attr("id", "cite-text-" + refID);
-
-                    $backRefSpan = $("<span/>")
-                        .addClass("footnoteBackReferenceGroup")
-                        .appendTo($li);
-
-                    $("<span/>")
-                        .addClass("footnoteContent")
-                        .append($footnoteHTML)
-                        .appendTo($li);
-
-                    // Create the backreference A
-                    $anchor = $("<a/>")
-                        .text("^")
-                        .attr("href", "#cite-ref-" + refID)
-                        .addClass("footnoteBackref")
-                        .prependTo($backRefSpan);
-
-                    // Add the footnote LI to the OL
-                    $footnoteDestination.append($li);
+                if (undefined === $foundFootnoteLI) {
+                    addNewFootnote(refID, $footnoteHTML, $footnoteDestination, $this, opts);
                 } else {
-                    // Reset the reference ID so we link to the correct places
-                    refID = j + "-" + foundFootnoteIdx;
-
-                    $backRefSpan = $($("li > .footnoteBackReferenceGroup", $footnoteDestination)
-                        .get(foundFootnoteIdx));
-                    $backRefs = $backRefSpan.find(".footnoteBackref");
-
-                    letterCounter = $backRefs.length;
-
-                    if(0 === $backRefs.length) {
-                        logToConsole("ERROR: $backRefs.length == 0, which should have prevented this code path", opts.debugMode);
-                    } else {
-                        if(1 === $backRefs.length) {
-                            // We need to insert a non-linked ^, and change the link text to "a"
-                            $("<sup/>")
-                                .text("^ ")
-                                .addClass("footnoteBackref")
-                                .prependTo($backRefSpan);
-                            $backRefs.html("<sup>a</sup>");
-
-                            letterCounter = letterCounter + 1;
-                        }
-
-                        // Insert the two links for this footnote
-
-                        // first, the link to the footnote
-                        $anchor = $("<a/>")
-                            .attr("href", "#" + $foundFootnoteLI.attr("id"))
-                            .attr("name", "cite-ref-" + refID + "-" + $backRefs.length)
-                            .attr("id", "cite-ref-" + refID + "-" + $backRefs.length)
-                            .attr("title", $footnoteHTML.text())
-                            .text("[" + (foundFootnoteIdx + 1) + "]")
-                            .addClass("footnoteLink");
-
-                        // Add a new SUP tag and set its properties
-                        if($this.is(opts.prependTags)) {
-                            $("<sup/>")
-                                .prependTo(this)
-                                .append($anchor);
-                        } else {
-                            $("<sup/>")
-                                .insertAfter(this)
-                                .append($anchor);
-                        }
-
-                        // The backreference
-                        $anchor = $("<a/>")
-                            .attr("href", "#cite-ref-" + refID + "-" + $backRefs.length)
-                            .addClass("footnoteBackref");
-
-                        if(letterCounter >= 26) {
-                            logToConsole("WARN: multiple letter functionality is probably broken when more than 26 footnotes exist", opts.debugMode);
-                        }
-                        $anchor.prepend(String.fromCharCode(letterCounter + 96));
-
-                        $("<sup/>")
-                            .appendTo($backRefSpan)
-                            .append($anchor);
-
-                        $footnoteHTML.remove();
-                    }
+                    addInstanceToExistingFootnote($footnoteHTML, $foundFootnoteLI, j, foundFootnoteIdx, $this, $this.is(opts.prependTags));
                 }
             }); // end $("." + opts.autoFootnoteClass).each(function(i))
 
